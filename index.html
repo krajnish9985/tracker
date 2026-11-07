@@ -1126,8 +1126,11 @@ function uuid() {
 // ==================== DEMO DATA ====================
 
 function seedDemoData() {
+  if (localStorage.getItem('learneer_seeded')) return;
+  localStorage.setItem('learneer_seeded', 'true');
+
   const db = getDB();
-  if (db.playlists.length > 0) return;
+  if (db.playlists && db.playlists.length > 0) return;
 
   const gradients = [
     ['#e05c2a','#c94e1e'],['#4caf50','#388e3c'],['#2196f3','#1565c0'],
@@ -1236,6 +1239,10 @@ function navigate(page, playlistId, pushState = true) {
   if (page === 'browse') renderCoursesGrid('browseGrid');
   if (page === 'playlists') renderCoursesGrid('playlistsGrid');
   if (page === 'study-plan') renderStudyPlan();
+
+  if (page !== 'home' && page !== 'detail') {
+    try { localStorage.setItem('learneer_last_page', page); } catch(e){}
+  }
 
   window.scrollTo(0, 0);
 
@@ -2380,7 +2387,17 @@ function init() {
   } else if (hash && ['home','browse','playlists','study-plan'].includes(hash)) {
     navigate(hash, null, false);
   } else {
-    navigate('home', null, false);
+    // Returning users go directly to their playlists or last active page
+    const db = getDB();
+    const hasData = (db.playlists && db.playlists.length > 0) || (db.studyPlans && db.studyPlans.length > 0);
+    const lastPage = localStorage.getItem('learneer_last_page');
+    if (lastPage && ['browse','playlists','study-plan'].includes(lastPage)) {
+      navigate(lastPage, null, false);
+    } else if (hasData) {
+      navigate('playlists', null, false);
+    } else {
+      navigate('home', null, false);
+    }
   }
 
   // Handle study plan page special init
