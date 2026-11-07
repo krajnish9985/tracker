@@ -1032,6 +1032,9 @@
             <label class="form-label">Restore from Backup File</label>
             <input type="file" id="backupFileInput" accept=".json" onchange="restoreBackup(event)" class="form-control" style="padding:8px">
           </div>
+          <div style="border-top:1px solid var(--border);padding-top:12px;display:flex;justify-content:flex-end">
+            <button class="btn btn-danger btn-sm" onclick="clearAllData()">🧹 Clear All Data (Start Fresh)</button>
+          </div>
         </div>
       </div>
 
@@ -1072,6 +1075,12 @@ function getDB() {
   } catch { return { playlists: [], studyPlans: [], settings: {} }; }
 }
 
+const SYNC_ENDPOINT = 'https://kvdb.io/7vUM4wfeQquWKrNMfroNPa/';
+
+function sanitizeSyncKey(key) {
+  return (key || '').replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
 let cloudSyncDebounce = null;
 
 function saveDB(data) {
@@ -1080,42 +1089,47 @@ function saveDB(data) {
     clearTimeout(cloudSyncDebounce);
     cloudSyncDebounce = setTimeout(() => {
       pushToCloudSilent();
-    }, 2000);
+    }, 1500);
   }
 }
 
 async function pushToCloudSilent() {
   try {
     const db = getDB();
-    const key = db.settings && db.settings.syncKey;
+    const rawKey = db.settings && db.settings.syncKey;
+    const key = sanitizeSyncKey(rawKey);
     if (!key) return;
-    await fetch(`https://api.jsonstorage.net/v1/json/${key}`, {
-      method: 'PUT',
+    await fetch(SYNC_ENDPOINT + key, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(db)
     });
   } catch (e) {
-    console.warn('Auto cloud sync background notice:', e);
+    console.warn('Auto cloud sync notice:', e);
   }
 }
 
 async function pullFromCloudSilent() {
   try {
     const db = getDB();
-    const key = db.settings && db.settings.syncKey;
+    const rawKey = db.settings && db.settings.syncKey;
+    const key = sanitizeSyncKey(rawKey);
     if (!key || !db.settings.autoSync) return;
-    const res = await fetch(`https://api.jsonstorage.net/v1/json/${key}`);
+    const res = await fetch(SYNC_ENDPOINT + key);
     if (!res.ok) return;
     const cloudData = await res.json();
-    if (cloudData && (cloudData.playlists || cloudData.studyPlans)) {
+    if (cloudData && (Array.isArray(cloudData.playlists) || Array.isArray(cloudData.studyPlans))) {
       cloudData.settings = cloudData.settings || {};
-      cloudData.settings.syncKey = key;
+      cloudData.settings.syncKey = rawKey;
       cloudData.settings.autoSync = true;
       localStorage.setItem(DB_KEY, JSON.stringify(cloudData));
-      navigate(currentPage, currentPlaylistId);
+      if (currentPage === 'playlists') renderCoursesGrid('playlistsGrid');
+      if (currentPage === 'browse') renderCoursesGrid('browseGrid');
+      if (currentPage === 'detail' && currentPlaylistId) renderDetailPage(currentPlaylistId);
+      if (currentPage === 'study-plan') renderStudyPlan();
     }
   } catch (e) {
-    console.warn('Silent sync error:', e);
+    console.warn('Silent sync notice:', e);
   }
 }
 
@@ -1394,16 +1408,27 @@ function switchSyncTab(tab) {
 }
 
 function generateNewSyncKey() {
-  const newKey = 'ln_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36).slice(-4);
+  const newKey = 'ln_' + Math.random().toString(36).substring(2, 8) + '_' + Date.now().toString(36).slice(-4);
   document.getElementById('syncKeyInput').value = newKey;
   saveSyncSettings(newKey, true);
   showToast('Generated new sync key! Keep this to link your devices.', 'info');
+  pushToCloud();
+}
+
+function clearAllData() {
+  if (!confirm('Are you sure you want to delete ALL playlists and study notes to start completely fresh? This cannot be undone.')) return;
+  const db = { playlists: [], studyPlans: [], settings: getDB().settings || {} };
+  localStorage.setItem('learneer_seeded', 'true');
+  saveDB(db);
+  showToast('All data cleared! Starting fresh.', 'info');
+  closeSyncModal();
+  navigate('playlists');
 }
 
 function saveSyncSettings(key, autoSync) {
   const db = getDB();
   db.settings = db.settings || {};
-  db.settings.syncKey = key;
+  db.settings.syncKey = sanitizeSyncKey(key);
   db.settings.autoSync = autoSync;
   localStorage.setItem(DB_KEY, JSON.stringify(db));
 }
@@ -1434,6 +1459,7 @@ function restoreBackup(e) {
     try {
       const data = JSON.parse(evt.target.result);
       if (!data.playlists && !data.studyPlans) throw new Error('File does not contain playlists or study plans');
+      localStorage.setItem('learneer_seeded', 'true');
       saveDB(data);
       showToast('Data restored successfully! 🎉');
       closeSyncModal();
@@ -1446,7 +1472,8 @@ function restoreBackup(e) {
 }
 
 async function pushToCloud() {
-  const key = document.getElementById('syncKeyInput').value.trim();
+  const rawKey = document.getElementById('syncKeyInput').value.trim();
+  const key = sanitizeSyncKey(rawKey);
   if (!key) { showToast('Please enter or generate a Sync Key first', 'error'); return; }
   saveSyncSettings(key, document.getElementById('autoSyncCheck').checked);
 
@@ -1458,18 +1485,12 @@ async function pushToCloud() {
 
   try {
     const db = getDB();
-    const res = await fetch(`https://api.jsonstorage.net/v1/json/${key}`, {
-      method: 'PUT',
+    const res = await fetch(SYNC_ENDPOINT + key, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(db)
     });
-    if (!res.ok && res.status !== 404) {
-      await fetch(`https://api.jsonstorage.net/v1/json?apiKey=${key}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(db)
-      });
-    }
+    if (!res.ok) throw new Error('Cloud returned ' + res.status);
     if (status) status.textContent = 'Last pushed: ' + new Date().toLocaleTimeString();
     showToast('Saved to cloud! Everything is synced ✨');
   } catch (err) {
@@ -1482,7 +1503,8 @@ async function pushToCloud() {
 }
 
 async function pullFromCloud() {
-  const key = document.getElementById('syncKeyInput').value.trim();
+  const rawKey = document.getElementById('syncKeyInput').value.trim();
+  const key = sanitizeSyncKey(rawKey);
   if (!key) { showToast('Please enter your Sync Key', 'error'); return; }
   saveSyncSettings(key, document.getElementById('autoSyncCheck').checked);
 
@@ -1493,20 +1515,26 @@ async function pullFromCloud() {
   if (status) status.textContent = 'Downloading from cloud...';
 
   try {
-    const res = await fetch(`https://api.jsonstorage.net/v1/json/${key}`);
+    const res = await fetch(SYNC_ENDPOINT + key);
     if (!res.ok) throw new Error('No cloud data found for key (' + res.status + ')');
     const cloudData = await res.json();
-    if (!cloudData || (!cloudData.playlists && !cloudData.studyPlans)) throw new Error('Data empty');
+    if (!cloudData || (!Array.isArray(cloudData.playlists) && !Array.isArray(cloudData.studyPlans))) {
+      throw new Error('Data empty or invalid');
+    }
     
     cloudData.settings = cloudData.settings || {};
     cloudData.settings.syncKey = key;
     cloudData.settings.autoSync = document.getElementById('autoSyncCheck').checked;
 
-    saveDB(cloudData);
+    localStorage.setItem('learneer_seeded', 'true');
+    localStorage.setItem(DB_KEY, JSON.stringify(cloudData));
     if (status) status.textContent = 'Last synced: ' + new Date().toLocaleTimeString();
     showToast('Downloaded from cloud! All synced 🎉');
     closeSyncModal();
-    navigate(currentPage, currentPlaylistId);
+    if (currentPage === 'playlists') renderCoursesGrid('playlistsGrid');
+    if (currentPage === 'browse') renderCoursesGrid('browseGrid');
+    if (currentPage === 'detail' && currentPlaylistId) renderDetailPage(currentPlaylistId);
+    if (currentPage === 'study-plan') renderStudyPlan();
   } catch (err) {
     if (status) status.textContent = 'Pull failed: ' + err.message;
     showToast('Sync error: ' + err.message, 'error');
