@@ -1,0 +1,2417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Learneer - Free YouTube Course Tracker</title>
+  <style>
+    /* ===== CSS VARIABLES ===== */
+    :root {
+      --bg: #1a0a0a;
+      --bg-2: #2d1515;
+      --bg-card: #231010;
+      --border: #3d1f1f;
+      --text: #f0e6e6;
+      --text-muted: #9b7070;
+      --accent: #e05c2a;
+      --accent-hover: #c94e1e;
+      --accent-green: #4caf50;
+      --accent-blue: #2196f3;
+      --accent-red: #e53935;
+      --nav-height: 60px;
+      --radius: 10px;
+      --transition: 0.2s ease;
+    }
+
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { cursor: pointer; border: none; outline: none; font-family: inherit; }
+    input, textarea, select { font-family: inherit; outline: none; }
+    img { max-width: 100%; }
+    ul { list-style: none; }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-2); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ===== NAVBAR ===== */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: var(--nav-height);
+      background: rgba(26,10,10,0.97);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 1.3rem; font-weight: 800; color: #fff;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .nav-logo span { font-size: 1.4rem; }
+    .nav-links {
+      display: flex; align-items: center; gap: 4px;
+      margin-left: 8px;
+    }
+    .nav-link {
+      padding: 6px 14px; border-radius: 6px;
+      font-size: 0.9rem; font-weight: 500;
+      color: var(--text-muted);
+      transition: color var(--transition), background var(--transition);
+      cursor: pointer;
+    }
+    .nav-link:hover, .nav-link.active {
+      color: var(--text); background: var(--bg-2);
+    }
+    .nav-search {
+      flex: 1; max-width: 340px; position: relative;
+    }
+    .nav-search input {
+      width: 100%; padding: 7px 14px 7px 36px;
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 20px; color: var(--text); font-size: 0.875rem;
+      transition: border-color var(--transition);
+    }
+    .nav-search input::placeholder { color: var(--text-muted); }
+    .nav-search input:focus { border-color: var(--accent); }
+    .nav-search .search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); font-size: 0.85rem; pointer-events: none;
+    }
+    .search-dropdown {
+      position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      display: none; z-index: 100; max-height: 300px; overflow-y: auto;
+    }
+    .search-dropdown.show { display: block; }
+    .search-item {
+      padding: 10px 14px; cursor: pointer; font-size: 0.875rem;
+      display: flex; align-items: center; gap: 10px;
+      transition: background var(--transition);
+    }
+    .search-item:hover { background: var(--border); }
+    .search-item-thumb {
+      width: 40px; height: 28px; border-radius: 4px;
+      object-fit: cover; flex-shrink: 0;
+      background: var(--border);
+    }
+    .nav-spacer { flex: 1; }
+    .btn-create {
+      padding: 8px 16px; border-radius: 8px;
+      background: var(--accent); color: #fff;
+      font-size: 0.875rem; font-weight: 600;
+      transition: background var(--transition), transform var(--transition);
+      white-space: nowrap;
+    }
+    .btn-create:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .hamburger {
+      display: none; flex-direction: column; gap: 5px;
+      cursor: pointer; padding: 4px; border-radius: 6px;
+      transition: background var(--transition);
+    }
+    .hamburger:hover { background: var(--bg-2); }
+    .hamburger span {
+      display: block; width: 22px; height: 2px;
+      background: var(--text); border-radius: 2px;
+      transition: transform var(--transition), opacity var(--transition);
+    }
+    .mobile-menu {
+      display: none; position: fixed; top: var(--nav-height); left: 0; right: 0;
+      background: var(--bg-2); border-bottom: 1px solid var(--border);
+      padding: 12px; z-index: 999; flex-direction: column; gap: 4px;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-link {
+      padding: 10px 14px; border-radius: 8px; cursor: pointer;
+      font-size: 0.9rem; font-weight: 500; color: var(--text-muted);
+      transition: background var(--transition), color var(--transition);
+    }
+    .mobile-link:hover { background: var(--border); color: var(--text); }
+
+    /* ===== PAGE CONTAINER ===== */
+    .page {
+      display: none; min-height: calc(100vh - var(--nav-height));
+      padding-top: var(--nav-height);
+    }
+    .page.active { display: block; }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: 8px;
+      font-size: 0.875rem; font-weight: 600;
+      transition: all var(--transition); cursor: pointer;
+    }
+    .btn-primary { background: var(--accent); color: #fff; border: none; }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-secondary {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg-2); border-color: var(--text-muted); }
+    .btn-danger { background: var(--accent-red); color: #fff; border: none; }
+    .btn-danger:hover { background: #c62828; }
+    .btn-success { background: var(--accent-green); color: #fff; border: none; }
+    .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+    .btn-icon { padding: 6px; border-radius: 6px; }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      border-color: var(--accent);
+    }
+
+    /* ===== BADGE ===== */
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-green { background: rgba(76,175,80,0.2); color: var(--accent-green); }
+    .badge-orange { background: rgba(224,92,42,0.2); color: var(--accent); }
+    .badge-blue { background: rgba(33,150,243,0.2); color: var(--accent-blue); }
+
+    /* ===== PROGRESS BAR ===== */
+    .progress-bar {
+      height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-green));
+      transition: width 0.5s ease;
+    }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      z-index: 2000; display: none; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 14px; width: 100%; max-width: 540px;
+      max-height: 90vh; overflow-y: auto;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: 1.1rem; font-weight: 700; }
+    .modal-close {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--border); color: var(--text); font-size: 1rem;
+      cursor: pointer; transition: background var(--transition);
+    }
+    .modal-close:hover { background: var(--accent-red); }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer {
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: flex-end;
+    }
+
+    /* ===== FORM ===== */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 0.85rem; font-weight: 600;
+      color: var(--text-muted); margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%; padding: 10px 14px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 0.9rem;
+      transition: border-color var(--transition);
+    }
+    .form-control:focus { border-color: var(--accent); }
+    .form-control::placeholder { color: var(--text-muted); }
+    select.form-control option { background: var(--bg-2); }
+    textarea.form-control { resize: vertical; min-height: 80px; }
+
+    /* ===== HOME PAGE ===== */
+    .hero {
+      min-height: calc(100vh - var(--nav-height));
+      display: flex; align-items: center;
+      padding: 60px 24px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(224,92,42,0.08) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, rgba(76,175,80,0.05) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .hero-inner {
+      max-width: 1200px; margin: 0 auto; width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+    }
+    .hero-title {
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 800; line-height: 1.1; margin-bottom: 20px;
+    }
+    .hero-title .highlight { color: var(--accent); }
+    .hero-subtitle {
+      font-size: 1.1rem; color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .hero-subtitle .free-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 20px;
+      background: rgba(76,175,80,0.2); color: var(--accent-green);
+      font-weight: 700; font-size: 0.95rem;
+    }
+    .hero-desc {
+      color: var(--text-muted); margin-bottom: 32px; font-size: 0.95rem; line-height: 1.8;
+    }
+    .hero-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--accent); font-weight: 700; font-size: 1rem;
+      cursor: pointer; transition: gap var(--transition);
+    }
+    .hero-cta:hover { gap: 12px; }
+    .hero-visual {
+      display: flex; align-items: center; justify-content: center;
+      position: relative; height: 380px;
+    }
+    .floating-icon {
+      position: absolute; display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; font-size: 1.8rem;
+      animation: floatAnim 3s ease-in-out infinite;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .floating-icon:nth-child(1) { width: 80px; height: 80px; background: rgba(224,92,42,0.2); top: 10%; left: 20%; animation-delay: 0s; }
+    .floating-icon:nth-child(2) { width: 70px; height: 70px; background: rgba(76,175,80,0.2); top: 15%; right: 10%; animation-delay: 0.6s; }
+    .floating-icon:nth-child(3) { width: 90px; height: 90px; background: rgba(33,150,243,0.2); bottom: 20%; left: 5%; animation-delay: 1.2s; }
+    .floating-icon:nth-child(4) { width: 65px; height: 65px; background: rgba(156,39,176,0.2); bottom: 25%; right: 25%; animation-delay: 0.9s; }
+    .floating-icon:nth-child(5) { width: 75px; height: 75px; background: rgba(255,193,7,0.2); top: 50%; left: 45%; animation-delay: 1.8s; }
+    @keyframes floatAnim {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-16px) rotate(5deg); }
+    }
+    .hero-center-card {
+      width: 220px; height: 260px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px;
+      display: flex; flex-direction: column; gap: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .hero-center-card .mini-thumb {
+      width: 100%; height: 110px; border-radius: 10px;
+      background: linear-gradient(135deg, #e05c2a33, #4caf5033);
+      display: flex; align-items: center; justify-content: center; font-size: 2rem;
+    }
+    .hero-center-card .mini-title { font-size: 0.85rem; font-weight: 700; }
+    .hero-center-card .mini-prog { margin-top: auto; }
+    .hero-center-card .mini-prog-label {
+      font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;
+    }
+
+    /* Features Section */
+    .features-section {
+      padding: 80px 24px; background: var(--bg-2);
+    }
+    .section-title {
+      text-align: center; font-size: 1.8rem; font-weight: 800; margin-bottom: 12px;
+    }
+    .section-sub {
+      text-align: center; color: var(--text-muted); margin-bottom: 48px; font-size: 0.95rem;
+    }
+    .features-grid {
+      max-width: 1000px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+      transition: transform var(--transition), border-color var(--transition);
+    }
+    .feature-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+    .feature-icon { font-size: 2.2rem; margin-bottom: 16px; }
+    .feature-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-desc { font-size: 0.875rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* ===== BROWSE / MY PLAYLISTS PAGE ===== */
+    .page-header {
+      padding: 32px 24px 24px; max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    }
+    .page-header h1 { font-size: 1.6rem; font-weight: 800; }
+    .courses-grid {
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 24px 60px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    }
+    .course-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+      display: flex; flex-direction: column;
+    }
+    .course-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+      border-color: var(--accent);
+    }
+    .course-thumb {
+      width: 100%; height: 160px; object-fit: cover;
+      display: block; background: var(--border);
+      flex-shrink: 0;
+    }
+    .course-thumb-placeholder {
+      width: 100%; height: 160px; display: flex;
+      align-items: center; justify-content: center;
+      font-size: 3rem; flex-shrink: 0;
+    }
+    .course-body { padding: 16px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .course-title { font-size: 0.95rem; font-weight: 700; line-height: 1.4; }
+    .course-meta {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      font-size: 0.8rem; color: var(--text-muted);
+    }
+    .course-progress-label { font-size: 0.8rem; color: var(--text-muted); }
+    .course-footer { padding: 12px 16px; border-top: 1px solid var(--border); }
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 80px 24px; text-align: center;
+      grid-column: 1 / -1;
+    }
+    .empty-state .empty-icon { font-size: 4rem; margin-bottom: 16px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .empty-state p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
+
+    /* ===== PLAYLIST DETAIL PAGE ===== */
+    .detail-header {
+      background: var(--bg-2); border-bottom: 1px solid var(--border);
+      padding: 32px 24px;
+    }
+    .detail-header-inner {
+      max-width: 1000px; margin: 0 auto;
+      display: flex; gap: 24px; align-items: flex-start;
+    }
+    .detail-thumb {
+      width: 220px; height: 130px; border-radius: 10px;
+      object-fit: cover; flex-shrink: 0; background: var(--border);
+    }
+    .detail-thumb-placeholder {
+      width: 220px; height: 130px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3rem; background: var(--bg-card); flex-shrink: 0;
+    }
+    .detail-info { flex: 1; min-width: 0; }
+    .detail-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; }
+    .detail-desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px; line-height: 1.6; }
+    .detail-stats {
+      display: flex; gap: 20px; flex-wrap: wrap;
+      font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;
+    }
+    .detail-stat strong { color: var(--text); }
+    .detail-progress-wrap { margin-bottom: 12px; }
+    .detail-progress-label {
+      display: flex; justify-content: space-between;
+      font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;
+    }
+    .detail-progress-bar { height: 8px; border-radius: 4px; }
+    .detail-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .detail-content { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    .video-list { display: flex; flex-direction: column; gap: 2px; }
+    .video-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; border-radius: 8px;
+      transition: background var(--transition); cursor: pointer;
+      position: relative;
+    }
+    .video-item:hover { background: var(--bg-2); }
+    .video-item.completed { opacity: 0.7; }
+    .video-checkbox {
+      width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border);
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      transition: all var(--transition); cursor: pointer;
+      background: transparent;
+    }
+    .video-item.completed .video-checkbox {
+      background: var(--accent-green); border-color: var(--accent-green); color: #fff;
+    }
+    .video-num { font-size: 0.8rem; color: var(--text-muted); min-width: 28px; flex-shrink: 0; }
+    .video-title-wrap { flex: 1; min-width: 0; }
+    .video-title { font-size: 0.9rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .video-item.completed .video-title { text-decoration: line-through; color: var(--text-muted); }
+    .video-duration { font-size: 0.8rem; color: var(--text-muted); min-width: 48px; text-align: right; flex-shrink: 0; }
+    .video-watch-btn {
+      padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+      background: rgba(224,92,42,0.15); color: var(--accent); border: 1px solid rgba(224,92,42,0.3);
+      transition: all var(--transition); flex-shrink: 0;
+    }
+    .video-watch-btn:hover { background: var(--accent); color: #fff; }
+    .video-done-mark { font-size: 0.85rem; color: var(--accent-green); flex-shrink: 0; min-width: 20px; }
+
+    /* ===== INLINE VIDEO PLAYER ===== */
+    .video-player-wrap {
+      background: #000; border-radius: 10px; overflow: hidden;
+      position: relative; padding-bottom: 56.25%; /* 16:9 */
+      height: 0; margin: 12px 0 4px 0; width: 100%;
+    }
+    .video-player-wrap iframe {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      border: none;
+    }
+    .video-item.playing { background: var(--bg-2); border: 1px solid rgba(224,92,42,0.4); border-radius: 8px; }
+    .video-item.playing .video-watch-btn { background: var(--accent); color: #fff; }
+    .video-player-row {
+      padding: 0 14px 10px 14px;
+      display: none;
+    }
+    .video-player-row.open { display: block; }
+    .player-close-row {
+      display: flex; justify-content: flex-end; margin-bottom: 6px;
+    }
+    .player-close-btn {
+      font-size: 0.75rem; color: var(--text-muted); background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; cursor: pointer;
+    }
+    .player-close-btn:hover { color: var(--text); }
+
+    /* ===== EDIT PLAYLIST MODAL ===== */
+    .edit-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      z-index: 2000; display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .edit-modal {
+      background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px;
+      width: 100%; max-width: 680px; max-height: 90vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .edit-modal-header {
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .edit-modal-header h3 { font-size: 1.1rem; font-weight: 700; }
+    .edit-modal-close {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--border);
+      color: var(--text-muted); font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .edit-modal-close:hover { background: var(--accent-red); color: #fff; }
+    .edit-modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 18px; }
+    .edit-modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+    .edit-section-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; }
+    /* Drag-and-drop video list */
+    .edit-video-list { display: flex; flex-direction: column; gap: 4px; }
+    .edit-video-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 10px;
+      transition: background var(--transition), opacity var(--transition);
+      cursor: grab;
+    }
+    .edit-video-item:active { cursor: grabbing; }
+    .edit-video-item.drag-over { border-color: var(--accent); background: rgba(224,92,42,0.08); }
+    .edit-video-item.dragging { opacity: 0.4; }
+    .drag-handle { color: var(--text-muted); font-size: 1rem; cursor: grab; flex-shrink: 0; user-select: none; }
+    .edit-video-num { font-size: 0.75rem; color: var(--text-muted); min-width: 22px; flex-shrink: 0; }
+    .edit-video-title { flex: 1; font-size: 0.85rem; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .edit-video-del {
+      width: 24px; height: 24px; border-radius: 50%; background: transparent;
+      color: var(--text-muted); font-size: 0.8rem; cursor: pointer; flex-shrink: 0;
+      border: 1px solid transparent; display: flex; align-items: center; justify-content: center;
+      transition: all var(--transition);
+    }
+    .edit-video-del:hover { background: var(--accent-red); color: #fff; border-color: var(--accent-red); }
+    .edit-add-video-row {
+      display: flex; gap: 8px; margin-top: 8px;
+    }
+    .edit-add-video-row input { flex: 1; }
+
+    /* ===== STUDY PLAN PAGE ===== */
+    .study-plan-layout {
+      display: flex; height: calc(100vh - var(--nav-height));
+    }
+    .sp-sidebar {
+      width: 260px; flex-shrink: 0;
+      background: var(--bg-2); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .sp-sidebar-header {
+      padding: 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sp-sidebar-title { font-size: 0.9rem; font-weight: 700; }
+    .sp-doc-list { flex: 1; overflow-y: auto; padding: 8px; }
+    .sp-doc-item {
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      transition: background var(--transition);
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .sp-doc-item:hover { background: var(--border); }
+    .sp-doc-item.active { background: rgba(224,92,42,0.15); border: 1px solid rgba(224,92,42,0.3); }
+    .sp-doc-name { font-size: 0.875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sp-doc-date { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+    .sp-doc-del {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; color: var(--text-muted); font-size: 0.75rem;
+      flex-shrink: 0; transition: background var(--transition), color var(--transition);
+      opacity: 0;
+    }
+    .sp-doc-item:hover .sp-doc-del { opacity: 1; }
+    .sp-doc-del:hover { background: var(--accent-red); color: #fff; }
+    .sp-editor-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    .sp-toolbar {
+      background: var(--bg-2); border-bottom: 1px solid var(--border);
+      padding: 8px 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px;
+    }
+    .tb-btn {
+      padding: 5px 8px; border-radius: 5px; border: none;
+      background: transparent; color: var(--text); font-size: 0.85rem;
+      transition: background var(--transition); min-width: 28px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .tb-btn:hover { background: var(--border); }
+    .tb-btn.active { background: rgba(224,92,42,0.2); color: var(--accent); }
+    .tb-sep {
+      width: 1px; height: 20px; background: var(--border); margin: 0 4px;
+    }
+    .tb-select {
+      padding: 4px 6px; border-radius: 5px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text); font-size: 0.8rem; cursor: pointer;
+    }
+    .tb-select option { background: var(--bg-2); }
+    .tb-color-wrap { display: flex; align-items: center; gap: 2px; }
+    .tb-color-wrap input[type="color"] {
+      width: 24px; height: 24px; border: none; border-radius: 4px;
+      cursor: pointer; padding: 2px; background: transparent;
+    }
+    .sp-editor-scroll { flex: 1; overflow-y: auto; background: #3a2525; padding: 24px; display: flex; justify-content: center; }
+    .sp-doc-title-input {
+      display: block; width: 100%; border: none; background: transparent;
+      font-size: 1.8rem; font-weight: 800; color: #111;
+      outline: none; margin-bottom: 16px; font-family: inherit;
+    }
+    .sp-doc-title-input::placeholder { color: #aaa; }
+    .sp-editor-paper {
+      background: #fff; color: #111;
+      width: 100%; max-width: 816px; min-height: 1056px;
+      border-radius: 4px; padding: 60px 72px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+    }
+    .sp-editor-content {
+      min-height: 500px; outline: none;
+      font-size: 1rem; line-height: 1.8; color: #111;
+      word-wrap: break-word;
+    }
+    .sp-editor-content h1 { font-size: 2em; margin: 0.67em 0; }
+    .sp-editor-content h2 { font-size: 1.5em; margin: 0.75em 0; }
+    .sp-editor-content h3 { font-size: 1.17em; margin: 0.83em 0; }
+    .sp-editor-content ul { list-style: disc; padding-left: 2em; }
+    .sp-editor-content ol { list-style: decimal; padding-left: 2em; }
+    .sp-editor-content a { color: #1a73e8; text-decoration: underline; }
+    .sp-editor-content hr { border: none; border-top: 2px solid #ddd; margin: 16px 0; }
+    .sp-status {
+      padding: 6px 16px; font-size: 0.75rem; color: var(--text-muted);
+      background: var(--bg-2); border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sp-status .saved-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green);
+    }
+    .sp-no-doc {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: var(--text-muted); gap: 12px;
+    }
+    .sp-no-doc .icon { font-size: 3rem; }
+
+    /* ===== TOAST ===== */
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
+      animation: toastIn 0.3s ease; display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .toast-success { background: var(--accent-green); color: #fff; }
+    .toast-error { background: var(--accent-red); color: #fff; }
+    .toast-info { background: var(--accent-blue); color: #fff; }
+    @keyframes toastIn {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ===== API KEY INFO BOX ===== */
+    .info-box {
+      background: rgba(33,150,243,0.1); border: 1px solid rgba(33,150,243,0.3);
+      border-radius: 8px; padding: 12px 16px; font-size: 0.85rem; color: var(--text-muted);
+      line-height: 1.6; margin-bottom: 16px;
+    }
+    .info-box a { color: var(--accent-blue); text-decoration: underline; }
+    .tab-switcher {
+      display: flex; gap: 2px; background: var(--bg-card);
+      border-radius: 8px; padding: 3px; margin-bottom: 16px;
+    }
+    .tab-btn {
+      flex: 1; padding: 7px 12px; border-radius: 6px; font-size: 0.85rem;
+      font-weight: 600; cursor: pointer; transition: all var(--transition);
+      background: transparent; color: var(--text-muted); border: none;
+    }
+    .tab-btn.active { background: var(--accent); color: #fff; }
+
+    /* ===== LOADING SPINNER ===== */
+    .spinner {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== BACK BTN ===== */
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--text); font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      background: var(--bg-card); border: 1px solid var(--border);
+      padding: 7px 14px; border-radius: 8px;
+      transition: all var(--transition); user-select: none;
+      width: fit-content;
+    }
+    .back-btn:hover { background: var(--border); color: #fff; transform: translateX(-3px); }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .courses-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .sp-sidebar { width: 220px; }
+      .sp-editor-paper { padding: 40px 48px; }
+    }
+    @media (max-width: 768px) {
+      .nav-links, .nav-search { display: none; }
+      .hamburger { display: flex; }
+      .btn-create { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .courses-grid { grid-template-columns: 1fr; }
+      .detail-header-inner { flex-direction: column; }
+      .detail-thumb, .detail-thumb-placeholder { width: 100%; height: 200px; }
+      .sp-sidebar { width: 100%; height: auto; max-height: 220px; border-right: none; border-bottom: 1px solid var(--border); }
+      .study-plan-layout { flex-direction: column; }
+      .sp-editor-paper { padding: 24px 20px; }
+      .sp-toolbar { gap: 1px; }
+    }
+    @media (max-width: 480px) {
+      .hero-title { font-size: 2rem; }
+      .courses-grid { padding: 0 12px 40px; }
+      .page-header { padding: 20px 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar" id="navbar">
+  <div class="nav-logo" onclick="navigate('home')">
+    <span>📚</span> Learneer
+  </div>
+  <div class="nav-links">
+    <div class="nav-link" data-page="browse" onclick="navigate('browse')">Browse</div>
+    <div class="nav-link" data-page="playlists" onclick="navigate('playlists')">My Playlists</div>
+    <div class="nav-link" data-page="study-plan" onclick="navigate('study-plan')">Study Plan</div>
+  </div>
+  <div class="nav-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search topics..." autocomplete="off" oninput="handleSearch(this.value)" onfocus="showSearchDropdown()" onblur="hideSearchDropdown()">
+    <div class="search-dropdown" id="searchDropdown"></div>
+  </div>
+  <div class="nav-spacer"></div>
+  <button class="btn btn-secondary btn-sm" onclick="openSyncModal()" style="display:flex;align-items:center;gap:6px">☁️ Sync &amp; Backup</button>
+  <button class="btn-create" onclick="openCreateModal()">+ Create Playlist</button>
+  <div class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-link" onclick="navigate('browse'); toggleMobileMenu()">Browse</div>
+  <div class="mobile-link" onclick="navigate('playlists'); toggleMobileMenu()">My Playlists</div>
+  <div class="mobile-link" onclick="navigate('study-plan'); toggleMobileMenu()">Study Plan</div>
+  <div class="mobile-link" onclick="openSyncModal(); toggleMobileMenu()">☁️ Sync &amp; Backup</div>
+  <div class="mobile-link" onclick="openCreateModal(); toggleMobileMenu()">+ Create Playlist</div>
+</div>
+
+<!-- ===== PAGES ===== -->
+
+<!-- HOME PAGE -->
+<div class="page active" id="page-home">
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <h1 class="hero-title">
+          You don't need to <span class="highlight">pay</span><br>
+          for courses
+        </h1>
+        <p class="hero-subtitle">
+          when everything exists for <span class="free-badge">free</span>
+        </p>
+        <p class="hero-desc">
+          Curated learning paths from YouTube.<br>
+          Create your own playlists. Track progress.
+        </p>
+        <span class="hero-cta" onclick="navigate('browse')">Start exploring →</span>
+      </div>
+      <div class="hero-visual">
+        <div class="floating-icon">📋</div>
+        <div class="floating-icon">🎓</div>
+        <div class="floating-icon">📖</div>
+        <div class="floating-icon">✏️</div>
+        <div class="floating-icon">🔬</div>
+        <div class="hero-center-card">
+          <div class="mini-thumb">🎬</div>
+          <div class="mini-title">Web Development Bootcamp</div>
+          <div class="mini-prog">
+            <div class="mini-prog-label">12 / 48 videos</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:25%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features-section">
+    <h2 class="section-title">Turn Any YouTube Playlist Into a Course</h2>
+    <p class="section-sub">Organize, track, and master any topic with zero cost</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title">Import from YouTube</div>
+        <div class="feature-desc">Paste any YouTube playlist URL and instantly import all videos with metadata, thumbnails, and durations.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Track Your Progress</div>
+        <div class="feature-desc">Mark videos as complete, see your progress bar update in real-time, and stay motivated to finish.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <div class="feature-title">Study Plan Editor</div>
+        <div class="feature-desc">Write rich study plans with a full-featured editor — formatting, lists, links, and more. Like Google Docs, but yours.</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- BROWSE PAGE -->
+<div class="page" id="page-browse">
+  <div class="page-header">
+    <h1>📂 Browse Courses</h1>
+    <button class="btn btn-primary" onclick="openCreateModal()">+ Create Playlist</button>
+  </div>
+  <div class="courses-grid" id="browseGrid"></div>
+</div>
+
+<!-- MY PLAYLISTS PAGE -->
+<div class="page" id="page-playlists">
+  <div class="page-header">
+    <h1>🎓 My Playlists</h1>
+    <button class="btn btn-primary" onclick="openCreateModal()">+ Create Playlist</button>
+  </div>
+  <div class="courses-grid" id="playlistsGrid"></div>
+</div>
+
+<!-- PLAYLIST DETAIL PAGE -->
+<div class="page" id="page-detail">
+  <div class="detail-header">
+    <div class="detail-header-inner" id="detailHeader"></div>
+  </div>
+  <div class="detail-content">
+    <div class="video-list" id="videoList"></div>
+  </div>
+</div>
+
+<!-- STUDY PLAN PAGE -->
+<div class="page" id="page-study-plan">
+  <div class="study-plan-layout">
+    <div class="sp-sidebar">
+      <div class="sp-sidebar-header">
+        <span class="sp-sidebar-title">📄 Documents</span>
+        <button class="btn btn-primary btn-sm" onclick="newDocument()">+ New</button>
+      </div>
+      <div class="sp-doc-list" id="spDocList"></div>
+    </div>
+    <div class="sp-editor-area" id="spEditorArea">
+      <div class="sp-no-doc" id="spNoDoc">
+        <div class="icon">📝</div>
+        <div>Select a document or create a new one</div>
+        <button class="btn btn-primary" onclick="newDocument()">+ New Document</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CREATE PLAYLIST MODAL ===== -->
+<div class="modal-overlay" id="createModal" onclick="closeCreateModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📥 Create Playlist</span>
+      <button class="modal-close" onclick="closeCreateModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tab-switcher">
+        <button class="tab-btn active" id="tabImport" onclick="switchTab('import')">📡 Import from YouTube</button>
+        <button class="tab-btn" id="tabManual" onclick="switchTab('manual')">✏️ Add Manually</button>
+      </div>
+
+      <!-- IMPORT TAB -->
+      <div id="tabContentImport">
+        <div class="form-group">
+          <label class="form-label">Playlist Name *</label>
+          <input type="text" id="plName" class="form-control" placeholder="e.g. Web Development Bootcamp">
+        </div>
+        <div class="form-group">
+          <label class="form-label">YouTube Playlist URL *</label>
+          <input type="text" id="plUrl" class="form-control" placeholder="https://www.youtube.com/playlist?list=PL...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category <span style="font-size:0.75rem;color:var(--text-muted);font-weight:400">(select or type your own)</span></label>
+          <input type="text" id="plCategory" list="categoryList" class="form-control" placeholder="e.g. Mathematics, Machine Learning, Programming...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea id="plDesc" class="form-control" placeholder="Optional description..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">YouTube API Key</label>
+          <div class="info-box" id="apiKeyInfo">
+            🔑 You need a free YouTube Data API v3 key to import playlists automatically.
+            <br><a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank">Get a free key here</a> → Enable YouTube Data API v3 → Create credentials → API Key.
+            <br><br>Once set, it's saved locally and never leaves your browser.
+          </div>
+          <input type="text" id="plApiKey" class="form-control" placeholder="AIzaSy...">
+          <small style="color:var(--text-muted);font-size:0.78rem;margin-top:4px;display:block">Stored in localStorage only. Never sent to any server.</small>
+        </div>
+        <button class="btn btn-primary" id="importBtn" onclick="importPlaylist()" style="width:100%">
+          📡 Import from YouTube
+        </button>
+      </div>
+
+      <!-- MANUAL TAB -->
+      <div id="tabContentManual" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Playlist Name *</label>
+          <input type="text" id="manName" class="form-control" placeholder="My Custom Course">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category <span style="font-size:0.75rem;color:var(--text-muted);font-weight:400">(select or type your own)</span></label>
+          <input type="text" id="manCategory" list="categoryList" class="form-control" placeholder="e.g. Mathematics, Machine Learning, Programming...">
+        </div>
+        <datalist id="categoryList">
+          <option value="Programming">
+          <option value="Mathematics">
+          <option value="Machine Learning">
+          <option value="Artificial Intelligence">
+          <option value="Data Science">
+          <option value="Computer Science">
+          <option value="Science">
+          <option value="Physics">
+          <option value="Chemistry">
+          <option value="Language">
+          <option value="Design">
+          <option value="Business">
+          <option value="Music">
+          <option value="History">
+          <option value="Other">
+        </datalist>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea id="manDesc" class="form-control" placeholder="Optional description..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Videos (one per line: Title | YouTube URL)</label>
+          <textarea id="manVideos" class="form-control" style="min-height:140px" placeholder="Introduction to Python | https://www.youtube.com/watch?v=abc123&#10;Variables and Types | https://www.youtube.com/watch?v=def456&#10;Control Flow | https://www.youtube.com/watch?v=ghi789"></textarea>
+          <small style="color:var(--text-muted);font-size:0.78rem;margin-top:4px;display:block">Format: Video Title | YouTube Watch URL (one per line)</small>
+        </div>
+        <button class="btn btn-primary" onclick="addManualPlaylist()" style="width:100%">
+          ✅ Create Playlist
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SYNC & BACKUP MODAL ===== -->
+<div class="modal-overlay" id="syncModal" onclick="closeSyncModal(event)">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <span class="modal-title">☁️ Multi-Device Sync &amp; Backup</span>
+      <button class="modal-close" onclick="closeSyncModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tab-switcher">
+        <button class="tab-btn active" id="tabSyncCloud" onclick="switchSyncTab('cloud')">☁️ Cloud Sync</button>
+        <button class="tab-btn" id="tabSyncBackup" onclick="switchSyncTab('backup')">💾 File Backup</button>
+        <button class="tab-btn" id="tabSyncHosting" onclick="switchSyncTab('hosting')">📱 Hosting Guide</button>
+      </div>
+
+      <!-- CLOUD SYNC TAB -->
+      <div id="tabContentCloud">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
+          Sync all your playlists, checkmarks, and study plans in real-time across your <strong>laptop</strong>, <strong>tablet</strong>, and <strong>phone</strong>.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">Your Private Sync Key</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="syncKeyInput" class="form-control" placeholder="e.g. learneer-abc123xyz" style="font-family:monospace;letter-spacing:1px">
+            <button class="btn btn-secondary btn-sm" onclick="generateNewSyncKey()" style="white-space:nowrap;flex-shrink:0">🔑 New Key</button>
+          </div>
+          <small style="color:var(--text-muted);font-size:0.75rem;margin-top:4px;display:block">
+            Enter this same key on your tablet &amp; phone to link all devices together!
+          </small>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button class="btn btn-primary" onclick="pushToCloud()" id="btnPushCloud" style="flex:1">
+            ⬆️ Push to Cloud
+          </button>
+          <button class="btn btn-secondary" onclick="pullFromCloud()" id="btnPullCloud" style="flex:1">
+            ⬇️ Pull from Cloud
+          </button>
+        </div>
+
+        <div style="margin-top:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:0.8rem;color:var(--text-muted)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span>🔄 Auto-sync when saving:</span>
+            <label style="cursor:pointer;display:flex;align-items:center;gap:6px">
+              <input type="checkbox" id="autoSyncCheck" onchange="toggleAutoSync(this.checked)">
+              <span id="autoSyncLabel">Enabled</span>
+            </label>
+          </div>
+          <div id="syncStatusText" style="margin-top:6px;font-size:0.75rem;color:var(--accent-green)">Ready</div>
+        </div>
+      </div>
+
+      <!-- FILE BACKUP TAB -->
+      <div id="tabContentBackup" style="display:none">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;line-height:1.5">
+          Export or import your full database (all courses, checkmarks, study notes) as a simple JSON file.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <button class="btn btn-primary" onclick="downloadBackup()" style="width:100%;padding:12px">
+            📥 Download Backup File (.json)
+          </button>
+          <div style="border-top:1px solid var(--border);padding-top:12px">
+            <label class="form-label">Restore from Backup File</label>
+            <input type="file" id="backupFileInput" accept=".json" onchange="restoreBackup(event)" class="form-control" style="padding:8px">
+          </div>
+        </div>
+      </div>
+
+      <!-- HOSTING GUIDE TAB -->
+      <div id="tabContentHosting" style="display:none">
+        <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;display:flex;flex-direction:column;gap:12px">
+          <div style="color:var(--text);font-weight:700;font-size:0.95rem">How to open on Phone &amp; Tablet (GitHub Pages):</div>
+          <ol style="padding-left:20px;display:flex;flex-direction:column;gap:8px">
+            <li>Go to <a href="https://github.com" target="_blank" style="color:var(--accent);text-decoration:underline">github.com</a> and click <strong>New Repository</strong> (name it <code>learneer</code>).</li>
+            <li>Click <strong>Upload files</strong> and drop your <code>index.html</code> file there.</li>
+            <li>Go to <strong>Settings → Pages</strong> (in the left sidebar).</li>
+            <li>Under <em>Source</em>, choose <strong>Deploy from a branch</strong> and select <code>main</code>. Click Save.</li>
+            <li>In 1 minute, GitHub gives you a free HTTPS link: <br><code style="color:var(--accent)">https://your-username.github.io/learneer</code></li>
+          </ol>
+          <p style="margin-top:6px">Open that link on your <strong>phone, tablet, and laptop</strong>! Combined with your Sync Key, all devices stay in sync!</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOAST CONTAINER ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// =====================================================================
+//  LEARNEER APP - Complete SPA Implementation
+// =====================================================================
+
+// ==================== DATA LAYER ====================
+
+const DB_KEY = 'learneer_data';
+
+function getDB() {
+  try {
+    return JSON.parse(localStorage.getItem(DB_KEY)) || { playlists: [], studyPlans: [], settings: {} };
+  } catch { return { playlists: [], studyPlans: [], settings: {} }; }
+}
+
+let cloudSyncDebounce = null;
+
+function saveDB(data) {
+  localStorage.setItem(DB_KEY, JSON.stringify(data));
+  if (data.settings && data.settings.syncKey && data.settings.autoSync) {
+    clearTimeout(cloudSyncDebounce);
+    cloudSyncDebounce = setTimeout(() => {
+      pushToCloudSilent();
+    }, 2000);
+  }
+}
+
+async function pushToCloudSilent() {
+  try {
+    const db = getDB();
+    const key = db.settings && db.settings.syncKey;
+    if (!key) return;
+    await fetch(`https://api.jsonstorage.net/v1/json/${key}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(db)
+    });
+  } catch (e) {
+    console.warn('Auto cloud sync background notice:', e);
+  }
+}
+
+async function pullFromCloudSilent() {
+  try {
+    const db = getDB();
+    const key = db.settings && db.settings.syncKey;
+    if (!key || !db.settings.autoSync) return;
+    const res = await fetch(`https://api.jsonstorage.net/v1/json/${key}`);
+    if (!res.ok) return;
+    const cloudData = await res.json();
+    if (cloudData && (cloudData.playlists || cloudData.studyPlans)) {
+      cloudData.settings = cloudData.settings || {};
+      cloudData.settings.syncKey = key;
+      cloudData.settings.autoSync = true;
+      localStorage.setItem(DB_KEY, JSON.stringify(cloudData));
+      navigate(currentPage, currentPlaylistId);
+    }
+  } catch (e) {
+    console.warn('Silent sync error:', e);
+  }
+}
+
+function uuid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+// ==================== DEMO DATA ====================
+
+function seedDemoData() {
+  const db = getDB();
+  if (db.playlists.length > 0) return;
+
+  const gradients = [
+    ['#e05c2a','#c94e1e'],['#4caf50','#388e3c'],['#2196f3','#1565c0'],
+    ['#9c27b0','#6a1b9a'],['#ff9800','#e65100'],['#00bcd4','#006064']
+  ];
+
+  const demos = [
+    {
+      id: uuid(), name: 'Python for Beginners', category: 'Programming',
+      description: 'Learn Python from scratch. Covers variables, data types, loops, functions, and OOP.',
+      thumbnail: null, gradient: gradients[0],
+      videos: [
+        { id: uuid(), title: 'Introduction to Python', duration: '12:34', youtubeId: 'kqtD5dpn9C8', completed: true, completedAt: new Date().toISOString() },
+        { id: uuid(), title: 'Variables and Data Types', duration: '18:22', youtubeId: 'Z1Yd7upQIW0', completed: true, completedAt: new Date().toISOString() },
+        { id: uuid(), title: 'Control Flow: if/else', duration: '14:08', youtubeId: 'Zp5MuPOtsSY', completed: true, completedAt: new Date().toISOString() },
+        { id: uuid(), title: 'Loops: for and while', duration: '20:15', youtubeId: 'OnDr4J2UXSA', completed: false, completedAt: null },
+        { id: uuid(), title: 'Functions and Scope', duration: '22:40', youtubeId: 'nrCAxXfRU28', completed: false, completedAt: null },
+        { id: uuid(), title: 'Lists and Tuples', duration: '16:55', youtubeId: 'ohCDWZgNIU0', completed: false, completedAt: null },
+        { id: uuid(), title: 'Dictionaries and Sets', duration: '19:30', youtubeId: 'XCcpzWs-CI4', completed: false, completedAt: null },
+        { id: uuid(), title: 'Object-Oriented Programming', duration: '28:12', youtubeId: 'JeznW_7DlB0', completed: false, completedAt: null },
+      ],
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    },
+    {
+      id: uuid(), name: 'Web Development Bootcamp', category: 'Programming',
+      description: 'Complete web dev course covering HTML, CSS, JavaScript, and modern frameworks.',
+      thumbnail: null, gradient: gradients[1],
+      videos: [
+        { id: uuid(), title: 'HTML Fundamentals', duration: '25:00', youtubeId: 'pQN-pnXPaVg', completed: true, completedAt: new Date().toISOString() },
+        { id: uuid(), title: 'CSS Basics & Selectors', duration: '30:15', youtubeId: 'yfoY53QXEnI', completed: true, completedAt: new Date().toISOString() },
+        { id: uuid(), title: 'CSS Flexbox Layout', duration: '22:40', youtubeId: 'fYq5PXgSsbE', completed: false, completedAt: null },
+        { id: uuid(), title: 'CSS Grid Layout', duration: '19:50', youtubeId: 'EFafSYg-PkI', completed: false, completedAt: null },
+        { id: uuid(), title: 'JavaScript Basics', duration: '35:20', youtubeId: 'hdI2bqOjy3c', completed: false, completedAt: null },
+        { id: uuid(), title: 'DOM Manipulation', duration: '28:00', youtubeId: 'eaLKqoW9-PQ', completed: false, completedAt: null },
+      ],
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    },
+    {
+      id: uuid(), name: 'Linear Algebra', category: 'Mathematics',
+      description: 'Vectors, matrices, determinants, eigenvalues. Essential for data science and ML.',
+      thumbnail: null, gradient: gradients[2],
+      videos: [
+        { id: uuid(), title: 'Vectors and Spaces', duration: '16:00', youtubeId: 'xyAuNHPsq-g', completed: true, completedAt: new Date().toISOString() },
+        { id: uuid(), title: 'Matrix Multiplication', duration: '12:45', youtubeId: 'XkY2DOUCWMU', completed: false, completedAt: null },
+        { id: uuid(), title: 'Null Space and Column Space', duration: '14:30', youtubeId: '8o5Cmfpeo6g', completed: false, completedAt: null },
+        { id: uuid(), title: 'Determinants', duration: '11:20', youtubeId: 'Ip3X9LOh2dk', completed: false, completedAt: null },
+        { id: uuid(), title: 'Eigenvalues & Eigenvectors', duration: '15:00', youtubeId: 'PFDu9oVAE-g', completed: false, completedAt: null },
+      ],
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    },
+    {
+      id: uuid(), name: 'UI/UX Design Fundamentals', category: 'Design',
+      description: 'Learn design principles, color theory, typography, and prototyping basics.',
+      thumbnail: null, gradient: gradients[3],
+      videos: [
+        { id: uuid(), title: 'Design Thinking Process', duration: '18:00', youtubeId: 'a7sEoEvT8l8', completed: false, completedAt: null },
+        { id: uuid(), title: 'Color Theory for Designers', duration: '21:30', youtubeId: 'AvgCkHrcj8w', completed: false, completedAt: null },
+        { id: uuid(), title: 'Typography Basics', duration: '14:50', youtubeId: 'hnCmSXSWBMk', completed: false, completedAt: null },
+        { id: uuid(), title: 'Layout and Composition', duration: '19:00', youtubeId: 'a5KYlHNKQB8', completed: false, completedAt: null },
+      ],
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    }
+  ];
+
+  const demoStudyPlan = {
+    id: uuid(), title: 'My Learning Roadmap',
+    content: `<h1>📚 My Learning Roadmap</h1><p>This is my personal study plan for becoming a full-stack developer.</p><h2>Phase 1: Foundations</h2><ul><li><b>Python</b> - Core programming language</li><li><b>HTML &amp; CSS</b> - Web structure and styling</li><li><b>Git &amp; GitHub</b> - Version control</li></ul><h2>Phase 2: Frontend</h2><ul><li>JavaScript (ES6+)</li><li>React or Vue</li><li>Responsive design</li></ul><h2>Phase 3: Backend</h2><ol><li>Node.js basics</li><li>REST APIs</li><li>Databases (SQL &amp; NoSQL)</li></ol><hr><p><i>Remember: consistency beats intensity. 1 hour daily &gt; 7 hours once a week.</i></p>`,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  };
+
+  db.playlists = demos;
+  db.studyPlans = [demoStudyPlan];
+  saveDB(db);
+}
+
+// ==================== ROUTING ====================
+
+let currentPage = 'home';
+let currentPlaylistId = null;
+let previousPage = 'browse';
+
+function navigate(page, playlistId, pushState = true) {
+  if (currentPage !== page || (playlistId && currentPlaylistId !== playlistId)) {
+    if (currentPage !== 'detail') {
+      previousPage = currentPage;
+    }
+  }
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+
+  currentPage = page;
+  currentPlaylistId = playlistId || null;
+
+  if (page === 'detail' && playlistId) {
+    document.getElementById('page-detail').classList.add('active');
+    renderDetailPage(playlistId);
+  } else {
+    const pageEl = document.getElementById('page-' + page);
+    if (pageEl) pageEl.classList.add('active');
+  }
+
+  const link = document.querySelector(`.nav-link[data-page="${page}"]`);
+  if (link) link.classList.add('active');
+
+  if (page === 'browse') renderCoursesGrid('browseGrid');
+  if (page === 'playlists') renderCoursesGrid('playlistsGrid');
+  if (page === 'study-plan') renderStudyPlan();
+
+  window.scrollTo(0, 0);
+
+  const targetHash = '#' + (playlistId ? page + '/' + playlistId : page);
+  if (location.hash !== targetHash) {
+    if (pushState) {
+      history.pushState({ page, playlistId }, '', targetHash);
+    } else {
+      history.replaceState({ page, playlistId }, '', targetHash);
+    }
+  }
+}
+
+function goBack() {
+  if (previousPage && previousPage !== 'detail') {
+    navigate(previousPage);
+  } else {
+    navigate('browse');
+  }
+}
+
+window.addEventListener('popstate', () => {
+  const hash = location.hash.slice(1);
+  if (hash.startsWith('detail/')) navigate('detail', hash.slice(7), false);
+  else if (hash) navigate(hash, null, false);
+  else navigate('home', null, false);
+});
+
+// ==================== TOAST ====================
+
+function showToast(msg, type = 'success', duration = 3000) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span>${icons[type]||''}</span> ${msg}`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100px)'; toast.style.transition = '0.3s'; setTimeout(() => toast.remove(), 300); }, duration);
+}
+
+// ==================== MOBILE MENU ====================
+
+function toggleMobileMenu() {
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+
+// ==================== SEARCH ====================
+
+let searchTimeout;
+function handleSearch(val) {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => performSearch(val), 150);
+}
+
+function performSearch(query) {
+  const dropdown = document.getElementById('searchDropdown');
+  if (!query.trim()) { dropdown.classList.remove('show'); return; }
+  const db = getDB();
+  const q = query.toLowerCase();
+  const results = db.playlists.filter(p =>
+    p.name.toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q)
+  ).slice(0, 6);
+  if (!results.length) {
+    dropdown.innerHTML = `<div class="search-item"><span style="color:var(--text-muted)">No results found</span></div>`;
+  } else {
+    dropdown.innerHTML = results.map(p => {
+      const gradColor = (p.gradient && p.gradient[0]) || '#e05c2a';
+      return `<div class="search-item" onclick="navigate('detail','${p.id}'); document.getElementById('searchInput').value=''; hideSearchDropdown()">
+        <div class="search-item-thumb" style="background:linear-gradient(135deg,${gradColor}44,${gradColor}22);display:flex;align-items:center;justify-content:center;font-size:1.2rem">${getCategoryEmoji(p.category)}</div>
+        <div>
+          <div style="font-weight:600;font-size:0.875rem">${escHtml(p.name)}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted)">${p.videos?p.videos.length:0} videos · ${p.category||'Other'}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  dropdown.classList.add('show');
+}
+
+let hideSearchTimer;
+function showSearchDropdown() {
+  clearTimeout(hideSearchTimer);
+  if (document.getElementById('searchInput').value.trim()) document.getElementById('searchDropdown').classList.add('show');
+}
+function hideSearchDropdown() {
+  hideSearchTimer = setTimeout(() => document.getElementById('searchDropdown').classList.remove('show'), 200);
+}
+
+// ==================== MODAL ====================
+
+function openCreateModal() {
+  const db = getDB();
+  if (db.settings && db.settings.youtubeApiKey) {
+    document.getElementById('plApiKey').value = db.settings.youtubeApiKey;
+  }
+  document.getElementById('createModal').classList.add('open');
+}
+
+function closeCreateModal(e) {
+  if (!e || e.target === document.getElementById('createModal')) {
+    document.getElementById('createModal').classList.remove('open');
+    resetCreateForm();
+  }
+}
+
+function resetCreateForm() {
+  ['plName','plUrl','plDesc','plCategory','manName','manDesc','manCategory','manVideos'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+}
+
+function switchTab(tab) {
+  document.getElementById('tabContentImport').style.display = tab === 'import' ? '' : 'none';
+  document.getElementById('tabContentManual').style.display = tab === 'manual' ? '' : 'none';
+  document.getElementById('tabImport').classList.toggle('active', tab === 'import');
+  document.getElementById('tabManual').classList.toggle('active', tab === 'manual');
+}
+
+// ==================== SYNC & BACKUP MODAL ====================
+
+function openSyncModal() {
+  const db = getDB();
+  const modal = document.getElementById('syncModal');
+  const keyInput = document.getElementById('syncKeyInput');
+  const autoCheck = document.getElementById('autoSyncCheck');
+  if (db.settings) {
+    if (keyInput) keyInput.value = db.settings.syncKey || '';
+    if (autoCheck) autoCheck.checked = (db.settings.autoSync !== false);
+  } else {
+    if (autoCheck) autoCheck.checked = true;
+  }
+  modal.classList.add('open');
+}
+
+function closeSyncModal(e) {
+  if (!e || e.target === document.getElementById('syncModal')) {
+    document.getElementById('syncModal').classList.remove('open');
+  }
+}
+
+function switchSyncTab(tab) {
+  document.getElementById('tabContentCloud').style.display = tab === 'cloud' ? '' : 'none';
+  document.getElementById('tabContentBackup').style.display = tab === 'backup' ? '' : 'none';
+  document.getElementById('tabContentHosting').style.display = tab === 'hosting' ? '' : 'none';
+  document.getElementById('tabSyncCloud').classList.toggle('active', tab === 'cloud');
+  document.getElementById('tabSyncBackup').classList.toggle('active', tab === 'backup');
+  document.getElementById('tabSyncHosting').classList.toggle('active', tab === 'hosting');
+}
+
+function generateNewSyncKey() {
+  const newKey = 'ln_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36).slice(-4);
+  document.getElementById('syncKeyInput').value = newKey;
+  saveSyncSettings(newKey, true);
+  showToast('Generated new sync key! Keep this to link your devices.', 'info');
+}
+
+function saveSyncSettings(key, autoSync) {
+  const db = getDB();
+  db.settings = db.settings || {};
+  db.settings.syncKey = key;
+  db.settings.autoSync = autoSync;
+  localStorage.setItem(DB_KEY, JSON.stringify(db));
+}
+
+function toggleAutoSync(val) {
+  const key = document.getElementById('syncKeyInput').value.trim();
+  saveSyncSettings(key, val);
+  showToast(val ? 'Auto-sync enabled' : 'Auto-sync disabled');
+}
+
+function downloadBackup() {
+  const db = getDB();
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `learneer_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Backup file downloaded! ✨');
+}
+
+function restoreBackup(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = JSON.parse(evt.target.result);
+      if (!data.playlists && !data.studyPlans) throw new Error('File does not contain playlists or study plans');
+      saveDB(data);
+      showToast('Data restored successfully! 🎉');
+      closeSyncModal();
+      navigate(currentPage, currentPlaylistId);
+    } catch (err) {
+      showToast('Failed to parse backup: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function pushToCloud() {
+  const key = document.getElementById('syncKeyInput').value.trim();
+  if (!key) { showToast('Please enter or generate a Sync Key first', 'error'); return; }
+  saveSyncSettings(key, document.getElementById('autoSyncCheck').checked);
+
+  const btn = document.getElementById('btnPushCloud');
+  const status = document.getElementById('syncStatusText');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Syncing...';
+  if (status) status.textContent = 'Uploading to cloud...';
+
+  try {
+    const db = getDB();
+    const res = await fetch(`https://api.jsonstorage.net/v1/json/${key}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(db)
+    });
+    if (!res.ok && res.status !== 404) {
+      await fetch(`https://api.jsonstorage.net/v1/json?apiKey=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(db)
+      });
+    }
+    if (status) status.textContent = 'Last pushed: ' + new Date().toLocaleTimeString();
+    showToast('Saved to cloud! Everything is synced ✨');
+  } catch (err) {
+    if (status) status.textContent = 'Push failed: ' + err.message;
+    showToast('Cloud error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⬆️ Push to Cloud';
+  }
+}
+
+async function pullFromCloud() {
+  const key = document.getElementById('syncKeyInput').value.trim();
+  if (!key) { showToast('Please enter your Sync Key', 'error'); return; }
+  saveSyncSettings(key, document.getElementById('autoSyncCheck').checked);
+
+  const btn = document.getElementById('btnPullCloud');
+  const status = document.getElementById('syncStatusText');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Pulling...';
+  if (status) status.textContent = 'Downloading from cloud...';
+
+  try {
+    const res = await fetch(`https://api.jsonstorage.net/v1/json/${key}`);
+    if (!res.ok) throw new Error('No cloud data found for key (' + res.status + ')');
+    const cloudData = await res.json();
+    if (!cloudData || (!cloudData.playlists && !cloudData.studyPlans)) throw new Error('Data empty');
+    
+    cloudData.settings = cloudData.settings || {};
+    cloudData.settings.syncKey = key;
+    cloudData.settings.autoSync = document.getElementById('autoSyncCheck').checked;
+
+    saveDB(cloudData);
+    if (status) status.textContent = 'Last synced: ' + new Date().toLocaleTimeString();
+    showToast('Downloaded from cloud! All synced 🎉');
+    closeSyncModal();
+    navigate(currentPage, currentPlaylistId);
+  } catch (err) {
+    if (status) status.textContent = 'Pull failed: ' + err.message;
+    showToast('Sync error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⬇️ Pull from Cloud';
+  }
+}
+
+// ==================== YOUTUBE IMPORT ====================
+
+function extractPlaylistId(url) {
+  const m = url.match(/[?&]list=([A-Za-z0-9_\-]+)/);
+  return m ? m[1] : null;
+}
+
+async function importPlaylist() {
+  const name = document.getElementById('plName').value.trim();
+  const url = document.getElementById('plUrl').value.trim();
+  const apiKey = document.getElementById('plApiKey').value.trim();
+  const category = document.getElementById('plCategory').value.trim() || 'General';
+  const desc = document.getElementById('plDesc').value.trim();
+
+  if (!name) { showToast('Please enter a playlist name', 'error'); return; }
+  if (!url) { showToast('Please enter a YouTube playlist URL', 'error'); return; }
+  if (!apiKey) { showToast('Please enter your YouTube API key', 'error'); return; }
+
+  const playlistId = extractPlaylistId(url);
+  if (!playlistId) { showToast('Could not extract playlist ID from URL', 'error'); return; }
+
+  const btn = document.getElementById('importBtn');
+  btn.innerHTML = '<div class="spinner"></div> Importing...';
+  btn.disabled = true;
+
+  try {
+    // Save API key
+    const db = getDB();
+    db.settings = db.settings || {};
+    db.settings.youtubeApiKey = apiKey;
+    saveDB(db);
+
+    // Fetch playlist metadata
+    const metaRes = await fetch(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${playlistId}&key=${apiKey}`);
+    const metaData = await metaRes.json();
+    if (metaData.error) throw new Error(metaData.error.message);
+
+    const plMeta = metaData.items && metaData.items[0];
+    const thumbnail = plMeta ? (
+      (plMeta.snippet.thumbnails.medium || plMeta.snippet.thumbnails.default || {}).url || null
+    ) : null;
+    const finalDesc = desc || (plMeta ? plMeta.snippet.description : '');
+
+    // Fetch playlist items (up to 50)
+    let videos = [];
+    let pageToken = '';
+    let fetched = 0;
+    do {
+      const itemsUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${playlistId}&maxResults=50&key=${apiKey}${pageToken ? '&pageToken=' + pageToken : ''}`;
+      const itemsRes = await fetch(itemsUrl);
+      const itemsData = await itemsRes.json();
+      if (itemsData.error) throw new Error(itemsData.error.message);
+
+      (itemsData.items || []).forEach(item => {
+        const s = item.snippet;
+        const thumb = s.thumbnails ? ((s.thumbnails.medium||s.thumbnails.default||{}).url||null) : null;
+        const videoId = s.resourceId ? s.resourceId.videoId : (item.contentDetails ? item.contentDetails.videoId : null);
+        videos.push({
+          id: uuid(), title: s.title, duration: '', thumbnail: thumb,
+          youtubeId: videoId, completed: false, completedAt: null
+        });
+      });
+
+      pageToken = itemsData.nextPageToken || '';
+      fetched += (itemsData.items||[]).length;
+    } while (pageToken && fetched < 200);
+
+    const playlist = {
+      id: uuid(), name, description: finalDesc, category,
+      thumbnail, youtubePlaylistId: playlistId, gradient: null,
+      videos, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    };
+
+    const db2 = getDB();
+    db2.playlists.unshift(playlist);
+    saveDB(db2);
+
+    showToast(`Imported "${name}" with ${videos.length} videos! 🎉`);
+    closeCreateModal();
+    navigate('browse');
+  } catch (err) {
+    showToast(`Import failed: ${err.message}`, 'error', 5000);
+  } finally {
+    btn.innerHTML = '📡 Import from YouTube';
+    btn.disabled = false;
+  }
+}
+
+// ==================== MANUAL PLAYLIST ====================
+
+function addManualPlaylist() {
+  const name = document.getElementById('manName').value.trim();
+  const category = document.getElementById('manCategory').value.trim() || 'General';
+  const desc = document.getElementById('manDesc').value.trim();
+  const videosRaw = document.getElementById('manVideos').value.trim();
+
+  if (!name) { showToast('Please enter a playlist name', 'error'); return; }
+
+  const videos = [];
+  if (videosRaw) {
+    videosRaw.split('\n').forEach(line => {
+      line = line.trim();
+      if (!line) return;
+      const parts = line.split('|');
+      const title = parts[0] ? parts[0].trim() : line;
+      const ytUrl = parts[1] ? parts[1].trim() : '';
+      const ytId = ytUrl.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_\-]+)/)?.[1] || null;
+      videos.push({ id: uuid(), title, duration: '', thumbnail: null, youtubeId: ytId, completed: false, completedAt: null });
+    });
+  }
+
+  const gradients = [['#e05c2a','#c94e1e'],['#4caf50','#388e3c'],['#2196f3','#1565c0'],['#9c27b0','#6a1b9a'],['#ff9800','#e65100']];
+  const playlist = {
+    id: uuid(), name, description: desc, category,
+    thumbnail: null, youtubePlaylistId: null,
+    gradient: gradients[Math.floor(Math.random() * gradients.length)],
+    videos, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  };
+
+  const db = getDB();
+  db.playlists.unshift(playlist);
+  saveDB(db);
+
+  showToast(`Created "${name}" with ${videos.length} videos! ✨`);
+  closeCreateModal();
+  navigate('browse');
+}
+
+// ==================== RENDER COURSES GRID ====================
+
+const CATEGORY_GRADIENTS = {
+  'Programming': ['#e05c2a','#c94e1e'],
+  'Mathematics': ['#2196f3','#1565c0'],
+  'Science': ['#4caf50','#388e3c'],
+  'Language': ['#9c27b0','#6a1b9a'],
+  'Design': ['#ff9800','#e65100'],
+  'Business': ['#00bcd4','#006064'],
+  'Music': ['#f44336','#b71c1c'],
+  'History': ['#795548','#4e342e'],
+  'Other': ['#607d8b','#37474f'],
+};
+
+function getCategoryEmoji(cat) {
+  if (!cat) return '📚';
+  const map = {
+    Programming:'💻', Mathematics:'📐', Science:'🔬', Language:'🌍',
+    Design:'🎨', Business:'💼', Music:'🎵', History:'🏛️', Other:'📚'
+  };
+  if (map[cat]) return map[cat];
+  const c = cat.toLowerCase();
+  if (c.includes('math') || c.includes('algebra') || c.includes('calculus')) return '📐';
+  if (c.includes('code') || c.includes('program') || c.includes('dev') || c.includes('web') || c.includes('software')) return '💻';
+  if (c.includes('ai') || c.includes('machine learning') || c.includes('data') || c.includes('robot') || c.includes('neural')) return '🤖';
+  if (c.includes('physic') || c.includes('chem') || c.includes('bio') || c.includes('sci')) return '🔬';
+  if (c.includes('art') || c.includes('design') || c.includes('ui') || c.includes('ux') || c.includes('draw')) return '🎨';
+  if (c.includes('music') || c.includes('audio') || c.includes('guitar') || c.includes('piano')) return '🎵';
+  if (c.includes('money') || c.includes('business') || c.includes('finance') || c.includes('market')) return '💼';
+  if (c.includes('lang') || c.includes('english') || c.includes('spanish') || c.includes('french')) return '🌍';
+  if (c.includes('history') || c.includes('ancient') || c.includes('war')) return '🏛️';
+  return '📚';
+}
+
+function getProgress(playlist) {
+  if (!playlist.videos || !playlist.videos.length) return { done: 0, total: 0, pct: 0 };
+  const done = playlist.videos.filter(v => v.completed).length;
+  const total = playlist.videos.length;
+  return { done, total, pct: Math.round((done / total) * 100) };
+}
+
+function getGradient(playlist) {
+  if (playlist.gradient) return `linear-gradient(135deg, ${playlist.gradient[0]}, ${playlist.gradient[1]})`;
+  const g = CATEGORY_GRADIENTS[playlist.category] || CATEGORY_GRADIENTS['Other'];
+  return `linear-gradient(135deg, ${g[0]}, ${g[1]})`;
+}
+
+function renderCoursesGrid(containerId) {
+  const db = getDB();
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!db.playlists.length) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🎓</div>
+      <h3>No playlists yet</h3>
+      <p>Create your first playlist to get started!</p>
+      <button class="btn btn-primary" onclick="openCreateModal()">+ Create Playlist</button>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = db.playlists.map(pl => {
+    const { done, total, pct } = getProgress(pl);
+    const gradient = getGradient(pl);
+    const emoji = getCategoryEmoji(pl.category);
+    const thumbHtml = pl.thumbnail
+      ? `<img class="course-thumb" src="${escHtml(pl.thumbnail)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      : '';
+    const placeholderHtml = `<div class="course-thumb-placeholder" style="background:${gradient};display:${pl.thumbnail ? 'none' : 'flex'}">${emoji}</div>`;
+
+    return `<div class="course-card" onclick="navigate('detail','${pl.id}')">
+      ${thumbHtml}${placeholderHtml}
+      <div class="course-body">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="badge badge-orange">${escHtml(pl.category||'Other')}</span>
+        </div>
+        <div class="course-title">${escHtml(pl.name)}</div>
+        <div class="course-meta">
+          <span>📹 ${total} videos</span>
+          <span>·</span>
+          <span style="color:${pct===100?'var(--accent-green)':'inherit'}">${done}/${total} done</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="course-progress-label">${pct}% completed</div>
+      </div>
+      <div class="course-footer">
+        <button class="btn btn-primary" style="width:100%" onclick="event.stopPropagation();navigate('detail','${pl.id}')">
+          ${pct > 0 ? '▶ Continue' : '🚀 Start Learning'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ==================== PLAYLIST DETAIL ====================
+
+function renderDetailPage(id) {
+  const db = getDB();
+  const pl = db.playlists.find(p => p.id === id);
+  if (!pl) { navigate('browse'); return; }
+
+  const { done, total, pct } = getProgress(pl);
+  const gradient = getGradient(pl);
+  const emoji = getCategoryEmoji(pl.category);
+
+  const header = document.getElementById('detailHeader');
+  const thumbHtml = pl.thumbnail
+    ? `<img class="detail-thumb" src="${escHtml(pl.thumbnail)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    : '';
+  const placeholderHtml = `<div class="detail-thumb-placeholder" style="background:${gradient};display:${pl.thumbnail ? 'none' : 'flex'}">${emoji}</div>`;
+
+  header.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;width:100%">
+      <span class="back-btn" onclick="goBack()">← Back</span>
+      <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+        ${thumbHtml}${placeholderHtml}
+        <div class="detail-info">
+          <div class="detail-title">${escHtml(pl.name)}</div>
+          ${pl.description ? `<div class="detail-desc">${escHtml(pl.description)}</div>` : ''}
+          <div class="detail-stats">
+            <span><strong>${total}</strong> Videos</span>
+            <span><strong>${done}</strong> Completed</span>
+            <span><strong>${pct}%</strong> Progress</span>
+            ${pl.category ? `<span class="badge badge-orange">${escHtml(pl.category)}</span>` : ''}
+          </div>
+          <div class="detail-progress-wrap">
+            <div class="detail-progress-label">
+              <span>${done} / ${total} videos</span>
+              <span>${pct}%</span>
+            </div>
+            <div class="progress-bar detail-progress-bar">
+              <div class="progress-fill" id="detailProgressFill" style="width:${pct}%"></div>
+            </div>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-secondary btn-sm" onclick="editPlaylistModal('${pl.id}')">✏️ Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deletePlaylist('${pl.id}')">🗑️ Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  renderVideoList(pl);
+}
+
+function renderVideoList(pl) {
+  const list = document.getElementById('videoList');
+  if (!pl.videos || !pl.videos.length) {
+    list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted)">No videos in this playlist.</div>`;
+    return;
+  }
+  list.innerHTML = pl.videos.map((v, i) => {
+    return `
+    <div class="video-item ${v.completed ? 'completed' : ''}" id="vi-${v.id}">
+      <div class="video-checkbox" onclick="toggleVideo('${pl.id}','${v.id}')">
+        ${v.completed ? '✓' : ''}
+      </div>
+      <span class="video-num">${i + 1}.</span>
+      <div class="video-title-wrap">
+        <div class="video-title" title="${escHtml(v.title)}">${escHtml(v.title)}</div>
+      </div>
+      ${v.duration ? `<span class="video-duration">${escHtml(v.duration)}</span>` : ''}
+      ${v.youtubeId ? `<button class="video-watch-btn" onclick="event.stopPropagation();togglePlayer('${v.id}','${v.youtubeId}')">▶ Watch</button>` : ''}
+      <span class="video-done-mark">${v.completed ? '✓' : ''}</span>
+    </div>
+    <div class="video-player-row" id="player-row-${v.id}">
+      <div class="player-close-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:12px;font-size:0.8rem;color:var(--text-muted);flex-wrap:wrap;">
+          <span style="color:var(--text);font-weight:600">▶ Now Playing</span>
+          <button class="player-close-btn" style="background:var(--bg-2);border-color:var(--border);" onclick="switchPlayerSource('${v.id}','${v.youtubeId}')" title="Switch player stream">
+            🔄 <span id="player-mode-label-${v.id}">${playerMode === 'invidious' ? 'Direct Stream' : 'YouTube Player'}</span> (Switch)
+          </button>
+          <a href="https://www.youtube.com/watch?v=${v.youtubeId}" target="_blank" style="color:var(--accent);text-decoration:underline">↗ YouTube</a>
+        </div>
+        <button class="player-close-btn" onclick="closePlayer('${v.id}')">✕ Close Player</button>
+      </div>
+      <div class="video-player-wrap" id="player-wrap-${v.id}"></div>
+    </div>`;
+  }).join('');
+}
+
+let activePlayerId = null;
+let playerMode = (location.protocol === 'file:') ? 'invidious' : 'youtube';
+
+function togglePlayer(videoId, youtubeId) {
+  // If same video — close it
+  if (activePlayerId === videoId) {
+    closePlayer(videoId);
+    return;
+  }
+  // Close previous player
+  if (activePlayerId) closePlayer(activePlayerId);
+
+  activePlayerId = videoId;
+  const row = document.getElementById(`player-row-${videoId}`);
+  const wrap = document.getElementById(`player-wrap-${videoId}`);
+  const item = document.getElementById(`vi-${videoId}`);
+  if (!row || !wrap) return;
+
+  loadPlayerIframe(wrap, youtubeId);
+  row.classList.add('open');
+  if (item) item.classList.add('playing');
+
+  // Smooth scroll to player
+  setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+}
+
+function loadPlayerIframe(wrap, youtubeId) {
+  if (playerMode === 'invidious') {
+    // Invidious allows direct playback from local file:// paths without Error 153
+    wrap.innerHTML = `<iframe
+      src="https://invidious.nerdvpn.de/embed/${youtubeId}?autoplay=1"
+      referrerpolicy="no-referrer"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>`;
+  } else {
+    // Standard YouTube embed
+    wrap.innerHTML = `<iframe
+      src="https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1"
+      referrerpolicy="strict-origin-when-cross-origin"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>`;
+  }
+}
+
+function switchPlayerSource(videoId, youtubeId) {
+  playerMode = (playerMode === 'youtube') ? 'invidious' : 'youtube';
+  const wrap = document.getElementById(`player-wrap-${videoId}`);
+  const label = document.getElementById(`player-mode-label-${videoId}`);
+  if (wrap) loadPlayerIframe(wrap, youtubeId);
+  if (label) label.textContent = playerMode === 'invidious' ? 'Direct Player (Local Mode)' : 'YouTube Embed';
+  showToast('Switched to ' + (playerMode === 'invidious' ? 'Direct Player (works on local file)' : 'YouTube Official Player'), 'info');
+}
+
+function closePlayer(videoId) {
+  const row = document.getElementById(`player-row-${videoId}`);
+  const wrap = document.getElementById(`player-wrap-${videoId}`);
+  const item = document.getElementById(`vi-${videoId}`);
+  if (row) row.classList.remove('open');
+  if (wrap) wrap.innerHTML = ''; // stop video
+  if (item) item.classList.remove('playing');
+  if (activePlayerId === videoId) activePlayerId = null;
+}
+
+function toggleVideo(playlistId, videoId) {
+  const db = getDB();
+  const pl = db.playlists.find(p => p.id === playlistId);
+  if (!pl) return;
+  const v = pl.videos.find(v => v.id === videoId);
+  if (!v) return;
+  v.completed = !v.completed;
+  v.completedAt = v.completed ? new Date().toISOString() : null;
+  pl.updatedAt = new Date().toISOString();
+  saveDB(db);
+  renderDetailPage(playlistId);
+}
+
+function deletePlaylist(id) {
+  if (!confirm('Delete this playlist? This cannot be undone.')) return;
+  const db = getDB();
+  db.playlists = db.playlists.filter(p => p.id !== id);
+  saveDB(db);
+  showToast('Playlist deleted');
+  navigate('browse');
+}
+
+function editPlaylistModal(id) {
+  const db = getDB();
+  const pl = db.playlists.find(p => p.id === id);
+  if (!pl) return;
+
+  // Remove existing edit modal if any
+  const existing = document.getElementById('editModalOverlay');
+  if (existing) existing.remove();
+
+  // Build video list HTML
+  function buildVideoListHTML(videos) {
+    if (!videos || !videos.length) return '<div style="color:var(--text-muted);font-size:0.85rem;padding:8px 0">No videos yet. Add one below.</div>';
+    return videos.map((v, i) => `
+      <div class="edit-video-item" draggable="true" data-vid="${v.id}">
+        <span class="drag-handle" title="Drag to reorder">⠿</span>
+        <span class="edit-video-num">${i + 1}.</span>
+        <span class="edit-video-title" title="${escHtml(v.title)}">${escHtml(v.title)}</span>
+        <button class="edit-video-del" onclick="editModalRemoveVideo('${v.id}')" title="Remove video">✕</button>
+      </div>`).join('');
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-modal-overlay';
+  overlay.id = 'editModalOverlay';
+  overlay.innerHTML = `
+    <div class="edit-modal">
+      <div class="edit-modal-header">
+        <h3>✏️ Edit Playlist</h3>
+        <button class="edit-modal-close" onclick="closeEditModal()">✕</button>
+      </div>
+      <div class="edit-modal-body">
+        <!-- Name & Description -->
+        <div>
+          <div class="edit-section-title">Playlist Info</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label class="form-label">Name</label>
+              <input class="form-control" id="editPlName" value="${escHtml(pl.name)}" placeholder="Playlist name">
+            </div>
+            <div>
+              <label class="form-label">Category <span style="font-size:0.75rem;color:var(--text-muted);font-weight:400">(select or type your own)</span></label>
+              <input class="form-control" id="editPlCategory" list="categoryList" value="${escHtml(pl.category||'')}" placeholder="e.g. Programming, Mathematics, Machine Learning...">
+            </div>
+            <div>
+              <label class="form-label">Description</label>
+              <textarea class="form-control" id="editPlDesc" rows="2" placeholder="Short description...">${escHtml(pl.description||'')}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video List -->
+        <div>
+          <div class="edit-section-title">Videos <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">(drag to reorder)</span></div>
+          <div class="edit-video-list" id="editVideoList">
+            ${buildVideoListHTML(pl.videos)}
+          </div>
+          <!-- Add Video Row -->
+          <div style="margin-top:12px;">
+            <div class="edit-section-title">Add a Video</div>
+            <div class="edit-add-video-row">
+              <input class="form-control" id="editNewVideoTitle" placeholder="Video title" style="flex:2">
+              <input class="form-control" id="editNewVideoUrl" placeholder="YouTube URL (optional)" style="flex:3">
+              <button class="btn btn-secondary btn-sm" onclick="editModalAddVideo()" style="white-space:nowrap;flex-shrink:0">+ Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="edit-modal-footer">
+        <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEditModal('${pl.id}')">💾 Save Changes</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeEditModal(); });
+
+  // Store working copy of videos in memory
+  window._editVideos = JSON.parse(JSON.stringify(pl.videos || []));
+  setupEditDragDrop();
+}
+
+function closeEditModal() {
+  const el = document.getElementById('editModalOverlay');
+  if (el) el.remove();
+  window._editVideos = null;
+}
+
+function editModalAddVideo() {
+  const titleInput = document.getElementById('editNewVideoTitle');
+  const urlInput = document.getElementById('editNewVideoUrl');
+  const title = titleInput.value.trim();
+  const url = urlInput.value.trim();
+  if (!title) { showToast('Enter a video title', 'error'); titleInput.focus(); return; }
+
+  let youtubeId = null;
+  if (url) {
+    const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+    if (m) youtubeId = m[1];
+  }
+
+  const newVideo = {
+    id: 'v' + Date.now(),
+    title,
+    youtubeId,
+    duration: '',
+    thumbnail: youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : '',
+    completed: false,
+    completedAt: null
+  };
+
+  window._editVideos = window._editVideos || [];
+  window._editVideos.push(newVideo);
+  titleInput.value = '';
+  urlInput.value = '';
+  refreshEditVideoList();
+  showToast('Video added', 'success');
+}
+
+function editModalRemoveVideo(vid) {
+  if (!window._editVideos) return;
+  if (!confirm('Remove this video from the playlist?')) return;
+  window._editVideos = window._editVideos.filter(v => v.id !== vid);
+  refreshEditVideoList();
+}
+
+function refreshEditVideoList() {
+  const list = document.getElementById('editVideoList');
+  if (!list) return;
+  if (!window._editVideos || !window._editVideos.length) {
+    list.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:8px 0">No videos yet. Add one below.</div>';
+    return;
+  }
+  list.innerHTML = window._editVideos.map((v, i) => `
+    <div class="edit-video-item" draggable="true" data-vid="${v.id}">
+      <span class="drag-handle" title="Drag to reorder">⠿</span>
+      <span class="edit-video-num">${i + 1}.</span>
+      <span class="edit-video-title" title="${escHtml(v.title)}">${escHtml(v.title)}</span>
+      <button class="edit-video-del" onclick="editModalRemoveVideo('${v.id}')" title="Remove video">✕</button>
+    </div>`).join('');
+  setupEditDragDrop();
+}
+
+function setupEditDragDrop() {
+  const list = document.getElementById('editVideoList');
+  if (!list) return;
+  let dragSrc = null;
+
+  list.querySelectorAll('.edit-video-item').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragSrc = item;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      list.querySelectorAll('.edit-video-item').forEach(i => i.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      list.querySelectorAll('.edit-video-item').forEach(i => i.classList.remove('drag-over'));
+      if (item !== dragSrc) item.classList.add('drag-over');
+    });
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!dragSrc || dragSrc === item) return;
+      item.classList.remove('drag-over');
+      // Reorder _editVideos array
+      const srcVid = dragSrc.dataset.vid;
+      const tgtVid = item.dataset.vid;
+      const srcIdx = window._editVideos.findIndex(v => v.id === srcVid);
+      const tgtIdx = window._editVideos.findIndex(v => v.id === tgtVid);
+      if (srcIdx === -1 || tgtIdx === -1) return;
+      const [moved] = window._editVideos.splice(srcIdx, 1);
+      window._editVideos.splice(tgtIdx, 0, moved);
+      refreshEditVideoList();
+    });
+  });
+}
+
+function saveEditModal(id) {
+  const db = getDB();
+  const pl = db.playlists.find(p => p.id === id);
+  if (!pl) return;
+  const name = document.getElementById('editPlName').value.trim();
+  const desc = document.getElementById('editPlDesc').value.trim();
+  const category = document.getElementById('editPlCategory').value.trim();
+  if (!name) { showToast('Playlist name is required', 'error'); return; }
+  pl.name = name;
+  pl.description = desc;
+  pl.category = category;
+  pl.videos = window._editVideos || pl.videos;
+  pl.updatedAt = new Date().toISOString();
+  saveDB(db);
+  closeEditModal();
+  showToast('Playlist updated ✓', 'success');
+  renderDetailPage(id);
+}
+
+// ==================== STUDY PLAN ====================
+
+let spCurrentDocId = null;
+let spSaveTimer = null;
+let spEditorBuilt = false;
+
+function renderStudyPlan() {
+  renderDocList();
+  if (!spEditorBuilt) return;
+  if (spCurrentDocId) loadDocument(spCurrentDocId);
+}
+
+function renderDocList() {
+  const db = getDB();
+  const list = document.getElementById('spDocList');
+  if (!db.studyPlans || !db.studyPlans.length) {
+    list.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:0.85rem">No documents yet.<br>Create your first one!</div>`;
+    return;
+  }
+  list.innerHTML = db.studyPlans.map(doc => {
+    const date = new Date(doc.updatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+    return `<div class="sp-doc-item ${doc.id === spCurrentDocId ? 'active' : ''}" onclick="loadDocument('${doc.id}')">
+      <div style="min-width:0;flex:1">
+        <div class="sp-doc-name">📄 ${escHtml(doc.title||'Untitled')}</div>
+        <div class="sp-doc-date">${date}</div>
+      </div>
+      <button class="sp-doc-del" onclick="event.stopPropagation();deleteDocument('${doc.id}')" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function buildEditor() {
+  const area = document.getElementById('spEditorArea');
+  area.innerHTML = `
+    <div class="sp-toolbar" id="spToolbar">
+      <button class="tb-btn" title="Bold (Ctrl+B)" onclick="fmt('bold')"><b>B</b></button>
+      <button class="tb-btn" title="Italic (Ctrl+I)" onclick="fmt('italic')"><i>I</i></button>
+      <button class="tb-btn" title="Underline (Ctrl+U)" onclick="fmt('underline')"><u>U</u></button>
+      <button class="tb-btn" title="Strikethrough" onclick="fmt('strikeThrough')"><s>S</s></button>
+      <div class="tb-sep"></div>
+      <select class="tb-select" title="Font Size" onchange="fmtSize(this.value)">
+        <option value="">Size</option>
+        <option value="1">10</option>
+        <option value="2">12</option>
+        <option value="3">14</option>
+        <option value="4">16</option>
+        <option value="5">18</option>
+        <option value="6">24</option>
+        <option value="7">36</option>
+      </select>
+      <div class="tb-color-wrap" title="Text Color">
+        <span style="font-size:0.75rem;color:var(--text-muted)">A</span>
+        <input type="color" id="fgColor" value="#000000" title="Text Color" onchange="fmtColor('foreColor',this.value)">
+      </div>
+      <div class="tb-color-wrap" title="Highlight Color">
+        <span style="font-size:0.75rem;color:var(--text-muted)">H</span>
+        <input type="color" id="bgColor" value="#ffff00" title="Highlight" onchange="fmtColor('hiliteColor',this.value)">
+      </div>
+      <div class="tb-sep"></div>
+      <select class="tb-select" title="Heading" onchange="fmtBlock(this.value);this.value=''">
+        <option value="">Heading</option>
+        <option value="h1">H1</option>
+        <option value="h2">H2</option>
+        <option value="h3">H3</option>
+        <option value="p">Normal</option>
+      </select>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" title="Align Left" onclick="fmt('justifyLeft')">⬜</button>
+      <button class="tb-btn" title="Center" onclick="fmt('justifyCenter')">☰</button>
+      <button class="tb-btn" title="Align Right" onclick="fmt('justifyRight')">⬛</button>
+      <button class="tb-btn" title="Justify" onclick="fmt('justifyFull')">☷</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" title="Bullet List" onclick="fmt('insertUnorderedList')">• List</button>
+      <button class="tb-btn" title="Numbered List" onclick="fmt('insertOrderedList')">1. List</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" title="Insert Link" onclick="fmtLink()">🔗</button>
+      <button class="tb-btn" title="Horizontal Rule" onclick="fmt('insertHorizontalRule')">─</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" title="Undo (Ctrl+Z)" onclick="fmt('undo')">↩</button>
+      <button class="tb-btn" title="Redo (Ctrl+Y)" onclick="fmt('redo')">↪</button>
+    </div>
+    <div class="sp-editor-scroll" id="spEditorScroll">
+      <div class="sp-editor-paper">
+        <input type="text" class="sp-doc-title-input" id="spDocTitleInput" placeholder="Document Title" oninput="scheduleDocSave()">
+        <div class="sp-editor-content" id="spEditorContent" contenteditable="true" spellcheck="true"></div>
+      </div>
+    </div>
+    <div class="sp-status" id="spStatus">
+      <div class="saved-dot"></div>
+      <span id="spStatusText">All changes saved</span>
+    </div>`;
+
+  // Set up editor events
+  const editor = document.getElementById('spEditorContent');
+  editor.addEventListener('input', scheduleDocSave);
+  editor.addEventListener('keydown', editorKeydown);
+  editor.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+  });
+
+  spEditorBuilt = true;
+
+  // Load first document if none selected
+  const db = getDB();
+  if (!spCurrentDocId && db.studyPlans && db.studyPlans.length) {
+    loadDocument(db.studyPlans[0].id);
+  }
+}
+
+function fmt(cmd) {
+  const editor = document.getElementById('spEditorContent');
+  if (!editor) return;
+  editor.focus();
+  document.execCommand(cmd, false, null);
+  scheduleDocSave();
+}
+
+function fmtSize(size) {
+  if (!size) return;
+  const editor = document.getElementById('spEditorContent');
+  if (!editor) return;
+  editor.focus();
+  document.execCommand('fontSize', false, size);
+  scheduleDocSave();
+}
+
+function fmtColor(cmd, color) {
+  const editor = document.getElementById('spEditorContent');
+  if (!editor) return;
+  editor.focus();
+  document.execCommand(cmd, false, color);
+  scheduleDocSave();
+}
+
+function fmtBlock(tag) {
+  if (!tag) return;
+  const editor = document.getElementById('spEditorContent');
+  if (!editor) return;
+  editor.focus();
+  document.execCommand('formatBlock', false, tag);
+  scheduleDocSave();
+}
+
+function fmtLink() {
+  const url = prompt('Enter URL:', 'https://');
+  if (!url) return;
+  const editor = document.getElementById('spEditorContent');
+  if (!editor) return;
+  editor.focus();
+  document.execCommand('createLink', false, url);
+  scheduleDocSave();
+}
+
+function editorKeydown(e) {
+  if (e.ctrlKey || e.metaKey) {
+    switch (e.key.toLowerCase()) {
+      case 'b': e.preventDefault(); fmt('bold'); break;
+      case 'i': e.preventDefault(); fmt('italic'); break;
+      case 'u': e.preventDefault(); fmt('underline'); break;
+      case 's': e.preventDefault(); saveDocument(); break;
+      case 'z': if (!e.shiftKey) { e.preventDefault(); fmt('undo'); } break;
+      case 'y': e.preventDefault(); fmt('redo'); break;
+    }
+  }
+}
+
+function scheduleDocSave() {
+  const statusText = document.getElementById('spStatusText');
+  if (statusText) statusText.textContent = 'Saving...';
+  clearTimeout(spSaveTimer);
+  spSaveTimer = setTimeout(saveDocument, 2000);
+}
+
+function saveDocument() {
+  if (!spCurrentDocId) return;
+  const titleEl = document.getElementById('spDocTitleInput');
+  const contentEl = document.getElementById('spEditorContent');
+  if (!titleEl || !contentEl) return;
+
+  const db = getDB();
+  const doc = db.studyPlans.find(d => d.id === spCurrentDocId);
+  if (!doc) return;
+
+  doc.title = titleEl.value.trim() || 'Untitled';
+  doc.content = contentEl.innerHTML;
+  doc.updatedAt = new Date().toISOString();
+  saveDB(db);
+
+  const statusText = document.getElementById('spStatusText');
+  if (statusText) statusText.textContent = 'All changes saved · ' + new Date().toLocaleTimeString();
+
+  renderDocList();
+}
+
+function loadDocument(id) {
+  if (!spEditorBuilt) {
+    buildEditor();
+  }
+
+  spCurrentDocId = id;
+  const db = getDB();
+  const doc = db.studyPlans.find(d => d.id === id);
+  if (!doc) return;
+
+  const titleEl = document.getElementById('spDocTitleInput');
+  const contentEl = document.getElementById('spEditorContent');
+  if (titleEl) titleEl.value = doc.title || '';
+  if (contentEl) contentEl.innerHTML = doc.content || '';
+
+  const noDoc = document.getElementById('spNoDoc');
+  if (noDoc) noDoc.style.display = 'none';
+
+  renderDocList();
+}
+
+function newDocument() {
+  if (!spEditorBuilt) buildEditor();
+
+  const doc = {
+    id: uuid(), title: 'New Document', content: '',
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  };
+  const db = getDB();
+  db.studyPlans.unshift(doc);
+  saveDB(db);
+  loadDocument(doc.id);
+  showToast('New document created 📄');
+}
+
+function deleteDocument(id) {
+  if (!confirm('Delete this document?')) return;
+  const db = getDB();
+  db.studyPlans = db.studyPlans.filter(d => d.id !== id);
+  saveDB(db);
+
+  if (spCurrentDocId === id) {
+    spCurrentDocId = null;
+    if (db.studyPlans.length) {
+      loadDocument(db.studyPlans[0].id);
+    } else {
+      const area = document.getElementById('spEditorArea');
+      area.innerHTML = `<div class="sp-no-doc" id="spNoDoc">
+        <div class="icon">📝</div>
+        <div>Select a document or create a new one</div>
+        <button class="btn btn-primary" onclick="newDocument()">+ New Document</button>
+      </div>`;
+      spEditorBuilt = false;
+    }
+  }
+
+  renderDocList();
+  showToast('Document deleted');
+}
+
+// ==================== HELPERS ====================
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ==================== INIT ====================
+
+function init() {
+  seedDemoData();
+  pullFromCloudSilent();
+
+  // Parse initial hash
+  const hash = location.hash.slice(1);
+  if (hash.startsWith('detail/')) {
+    navigate('detail', hash.slice(7), false);
+  } else if (hash && ['home','browse','playlists','study-plan'].includes(hash)) {
+    navigate(hash, null, false);
+  } else {
+    navigate('home', null, false);
+  }
+
+  // Handle study plan page special init
+  document.getElementById('page-study-plan').addEventListener('click', function onFirstClick() {
+    if (!spEditorBuilt) {
+      buildEditor();
+      const db = getDB();
+      if (db.studyPlans && db.studyPlans.length) {
+        loadDocument(db.studyPlans[0].id);
+      }
+    }
+    this.removeEventListener('click', onFirstClick);
+  });
+}
+
+// Auto-build editor when study plan page becomes visible
+const originalNavigate = navigate;
+window.navigate = function(page, playlistId, pushState = true) {
+  originalNavigate(page, playlistId, pushState);
+  if (page === 'study-plan' && !spEditorBuilt) {
+    setTimeout(() => {
+      buildEditor();
+      const db = getDB();
+      if (db.studyPlans && db.studyPlans.length && !spCurrentDocId) {
+        loadDocument(db.studyPlans[0].id);
+      }
+    }, 50);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
